@@ -1,0 +1,9 @@
+# data_server.yaml — 服务器训练用数据集配置（绝对路径）
+# 使用方法: yolo detect train model=yolo11n.pt data=configs/data_server.yaml ...
+# 注意: 请根据你的实际解压路径修改 train 和 val
+
+train: /path/to/container_yolov11_main/train/images
+val: /path/to/container_yolov11_main/valid/images
+
+nc: 4
+names: ['0', '1', '2', '3']
