@@ -1,0 +1,11 @@
+# data_kaggle.yaml — Kaggle Notebook 训练用数据集配置
+# 使用方法:
+#   1. 先在 Kaggle Notebook 中运行: !find /kaggle/input -name data.yaml -print
+#   2. 把找到的路径填入下面的 train 和 val
+#   3. 运行: !yolo detect train model=yolo11n.pt data=configs/data_kaggle.yaml ...
+
+train: /kaggle/input/你的数据集路径/train/images
+val: /kaggle/input/你的数据集路径/valid/images
+
+nc: 4
+names: ['0', '1', '2', '3']
