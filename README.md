@@ -1,6 +1,6 @@
-# 🚢 集装箱检测 — YOLO11 目标检测项目
+# 🚢 集装箱检测：YOLO11 目标检测项目
 
-> 📚 **面向本科生的 YOLO 入门实战项目** — 从数据准备到模型训练到推理预测，手把手教你完成一个完整的目标检测项目。
+> 📚 **面向本科生的 YOLO 入门实战项目**：从数据准备到模型训练到推理预测，手把手教你完成一个完整的目标检测项目。
 
 ---
 
@@ -16,28 +16,388 @@
 
 ## 🏆 效果展示
 
-### 基线模型性能（yolo11n）
+### 本次实验结果对比
 
-| 指标 | 数值 | 说明 |
-|:---:|:---:|:---|
-| **模型** | YOLO11n | 最轻量版本，仅 2.59M 参数 |
-| **精确率 (P)** | 0.980 | 检测出的目标中有 98% 是正确的 |
-| **召回率 (R)** | 0.975 | 实际存在的目标中有 97.5% 被找到 |
-| **mAP50** | 0.984 | 在 IoU=0.5 阈值下的平均精度 |
-| **mAP50-95** | 0.759 | 在 IoU=0.5~0.95 多个阈值下的平均精度 |
+| 实验 | 模型 | GPU 用法 | epochs | imgsz | batch | P | R | mAP50 | mAP50-95 | 用时 |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| 基线实验 | yolo11n | 单 GPU | 50 | 640 | 16 | 0.980 | 0.975 | 0.984 | 0.759 | 约 39 分钟 |
+| 大模型实验 | yolo11l | 4 GPU | 100 | 640 | 64 | 0.982 | 0.980 | 0.985 | 0.777 | 约 1.027 小时 |
 
-### 训练配置
+### 指标怎么理解
 
-| 配置项 | 值 |
-|:---:|:---:|
-| 训练轮数 (epochs) | 50 |
-| 图像尺寸 (imgsz) | 640 |
-| 批大小 (batch) | 16 |
-| 训练设备 | RTX 3090 |
-| 训练总时长 | ~39 分钟 |
-| 推理速度 | 0.1ms 预处理 + 0.5ms 推理 + 0.8ms 后处理 |
+| 指标 | yolo11n | yolo11l 4GPU | 说明 |
+|:---:|:---:|:---:|:---|
+| **精确率 (P)** | 0.980 | 0.982 | 检测出的目标中有多少是真的 |
+| **召回率 (R)** | 0.975 | 0.980 | 实际存在的目标中有多少被找到了 |
+| **mAP50** | 0.984 | 0.985 | IoU=0.5 时的平均精度，已经很高 |
+| **mAP50-95** | 0.759 | 0.777 | 更严格的位置精度指标，大模型有小幅提升 |
 
-> 💡 **这意味着什么？** 在消费级 GPU 上，用最小的 YOLO11 模型就能达到接近 98% 的检测准确率！更大的模型（如 yolo11l）效果会更好。
+> 💡 **这意味着什么？** yolo11l 确实比 yolo11n 更好，但提升并不夸张。mAP50 已经接近数据集上限，mAP50-95 的瓶颈更可能来自标注质量、图片分辨率、目标框是否贴合、数据集本身难度，而不只是模型大小。
+
+---
+
+## 🧑‍🎓 学生怎么复刻我的操作
+
+这一节给学生直接照着跑。你可以选一条路线：
+
+- **路线 A：Kaggle 路线**，适合学生，没有本地 GPU 也能跑。Kaggle 常见是单张 T4 或 P100，也可能给 T4 x2。
+- **路线 B：服务器或本地 GPU 路线**，适合老师、助教、实验室机器，路径要换成自己的数据集路径。
+
+### 路线 A：Kaggle 从零复刻流程
+
+#### 1. 下载 Roboflow YOLO 数据集
+
+1. 打开数据集页面：<https://universe.roboflow.com/cont-vkss7/container-sq4mu/dataset/1>
+2. 点击下载，格式选择 **YOLOv8**。
+3. 得到一个压缩包，里面通常会有 `train/`、`valid/`、`test/` 和 `data.yaml`。
+
+#### 2. 上传或添加数据集到 Kaggle
+
+有两种做法，任选一种：
+
+1. 在 Kaggle 页面点击 **Datasets**，再点 **New Dataset**，上传刚才下载的压缩包。
+2. 如果已经有人上传过这个数据集，也可以在 Notebook 右侧点击 **Add Input**，搜索并添加数据集。
+
+添加完成后，数据集会出现在 `/kaggle/input/` 下面。
+
+#### 3. 新建 Kaggle Notebook 并打开 GPU
+
+1. 点击 **New Notebook**。
+2. 右侧 **Settings** 里打开 **Accelerator**。
+3. 选择 GPU。学生一般用单张 T4 或 P100 就够跑 baseline。
+
+#### 4. 安装依赖并克隆项目
+
+在 Kaggle Notebook 里依次运行下面的 Cell：
+
+```python
+!pip install ultralytics PyYAML
+```
+
+```python
+!git clone https://github.com/genanalucy/Container_YOLO.git
+%cd Container_YOLO
+```
+
+#### 5. 找到 Kaggle 里的 data.yaml
+
+先不要猜路径，直接搜索：
+
+```python
+!find /kaggle/input -name data.yaml -print
+```
+
+你会看到类似输出：
+
+```text
+/kaggle/input/container-dataset/data.yaml
+```
+
+把这个路径记下来，下面会用到。
+
+#### 6. 如果原始 data.yaml 的相对路径失效，就新建 data_kaggle_fixed.yaml
+
+Roboflow 下载的 `data.yaml` 有时写的是相对路径，例如：
+
+```yaml
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+```
+
+在 Kaggle 里，这种相对路径容易失效。最稳妥的做法是新建一个使用绝对路径的配置文件。先用下面命令看清楚数据集目录：
+
+```python
+!find /kaggle/input -maxdepth 3 -type d | sort
+```
+
+然后按你的真实目录改下面三行路径：
+
+```python
+%%writefile data_kaggle_fixed.yaml
+train: /kaggle/input/你的数据集目录/train/images
+val: /kaggle/input/你的数据集目录/valid/images
+test: /kaggle/input/你的数据集目录/test/images
+
+nc: 4
+names: ['0', '1', '2', '3']
+```
+
+如果你的数据集中没有 `test/images`，可以删掉 `test:` 那一行，不影响训练。
+
+#### 7. 训练前检查数据集
+
+```python
+!python scripts/check_dataset.py --data data_kaggle_fixed.yaml
+```
+
+如果看到数据集检查通过，就继续。要是出现 `No images found` 或 `train path does not exist`，说明 `train:` 或 `val:` 路径写错了，回到上一步重新改绝对路径。
+
+#### 8. 先跑 1 轮 smoke training
+
+Smoke training 的作用是快速确认代码、数据、GPU 都能正常工作。它不是正式结果。
+
+```python
+!python scripts/train.py \
+    --model yolo11n.pt \
+    --data data_kaggle_fixed.yaml \
+    --epochs 1 \
+    --batch 4 \
+    --imgsz 640 \
+    --device 0 \
+    --name smoke_test
+```
+
+#### 9. 跑 baseline 正式训练
+
+学生复刻建议先跑这个版本，速度快，结果稳定：
+
+```python
+!python scripts/train.py \
+    --model yolo11n.pt \
+    --data data_kaggle_fixed.yaml \
+    --epochs 50 \
+    --batch 16 \
+    --imgsz 640 \
+    --device 0 \
+    --name baseline_yolo11n
+```
+
+如果 Kaggle 显存不足，把 `--batch 16` 改成 `--batch 8` 或 `--batch 4`。
+
+#### 10. 用 best.pt 做预测
+
+训练完成后，最佳权重一般在：
+
+```text
+runs/baseline_yolo11n/weights/best.pt
+```
+
+对验证集图片预测：
+
+```python
+!python scripts/predict.py \
+    --model runs/baseline_yolo11n/weights/best.pt \
+    --source /kaggle/input/你的数据集目录/valid/images \
+    --conf 0.25
+```
+
+预测图片会保存在 `runs/predict/` 下面。
+
+#### 11. 查看 results.csv 和指标
+
+```python
+!ls runs/baseline_yolo11n
+!tail -n 5 runs/baseline_yolo11n/results.csv
+```
+
+`results.csv` 里重点看这些列：
+
+- `metrics/precision(B)`：精确率 P。
+- `metrics/recall(B)`：召回率 R。
+- `metrics/mAP50(B)`：mAP50。
+- `metrics/mAP50-95(B)`：mAP50-95。
+
+如果你想下载结果，可以把 `runs/` 打包：
+
+```python
+import shutil
+shutil.make_archive('training_results', 'zip', 'runs')
+```
+
+然后在 Kaggle 右侧 Output 区域下载 `training_results.zip`。
+
+### 路线 B：服务器或本地 GPU 复刻流程
+
+这条路线适合老师、助教或有 GPU 的同学。下面所有路径都用通用写法，请换成你自己的目录，不要直接复制成真实服务器路径。
+
+#### 1. 准备代码和环境
+
+```bash
+git clone https://github.com/genanalucy/Container_YOLO.git
+cd Container_YOLO
+pip install ultralytics PyYAML
+```
+
+#### 2. 下载并解压 Roboflow YOLO 数据集
+
+从 Roboflow 下载 YOLOv8 格式后，解压到任意位置，例如：
+
+```text
+/path/to/container_dataset/
+├── train/images
+├── train/labels
+├── valid/images
+├── valid/labels
+└── data.yaml
+```
+
+#### 3. 写一个服务器用的数据配置
+
+```bash
+cat > data_server_fixed.yaml <<'EOF'
+train: /path/to/container_dataset/train/images
+val: /path/to/container_dataset/valid/images
+test: /path/to/container_dataset/test/images
+
+nc: 4
+names: ['0', '1', '2', '3']
+EOF
+```
+
+如果没有 `test/images`，删掉 `test:` 那一行即可。
+
+#### 4. 检查数据集
+
+```bash
+python scripts/check_dataset.py --data data_server_fixed.yaml
+```
+
+#### 5. 先跑 smoke training
+
+```bash
+python scripts/train.py \
+    --model yolo11n.pt \
+    --data data_server_fixed.yaml \
+    --epochs 1 \
+    --batch 4 \
+    --imgsz 640 \
+    --device 0 \
+    --name smoke_test
+```
+
+#### 6. 跑 baseline
+
+```bash
+python scripts/train.py \
+    --model yolo11n.pt \
+    --data data_server_fixed.yaml \
+    --epochs 50 \
+    --batch 16 \
+    --imgsz 640 \
+    --device 0 \
+    --name baseline_yolo11n
+```
+
+#### 7. 用 best.pt 预测并检查结果
+
+```bash
+python scripts/predict.py \
+    --model runs/baseline_yolo11n/weights/best.pt \
+    --source /path/to/container_dataset/valid/images \
+    --conf 0.25
+
+tail -n 5 runs/baseline_yolo11n/results.csv
+```
+
+---
+
+## 👀 怎么看训练进度
+
+### Kaggle 上怎么看
+
+Kaggle Notebook 会直接显示训练日志。训练时你会看到类似这样的进度：
+
+```text
+      4/100      13.2G      0.751      0.432      0.903         47        640:  52% 47/91 [00:15<00:14, 3.0it/s]
+```
+
+这行可以这样读：
+
+- `4/100`：现在是第 4 轮，一共要训练 100 轮。
+- `47/91`：当前这一轮有 91 个 batch，现在跑到第 47 个。
+- `3.0it/s`：每秒大约跑 3 个 batch，越高越快。
+- `<14.9s` 或 `<00:14`：当前这一轮预计还要 14 秒左右。
+
+### 服务器上用 tmux 看进度
+
+服务器训练时间比较长，推荐用 `tmux`，这样断开 SSH 后训练不会停。
+
+新建会话：
+
+```bash
+tmux new -s yolo_train
+```
+
+在 tmux 里启动训练，并把日志保存下来：
+
+```bash
+python scripts/train.py \
+    --model yolo11n.pt \
+    --data data_server_fixed.yaml \
+    --epochs 50 \
+    --batch 16 \
+    --imgsz 640 \
+    --device 0 \
+    --name baseline_yolo11n 2>&1 | tee baseline_yolo11n.log
+```
+
+临时离开 tmux：先按 `Ctrl+b`，松开后再按 `d`。
+
+重新进入训练窗口：
+
+```bash
+tmux attach -t yolo_train
+```
+
+如果你只想看日志，不进入 tmux：
+
+```bash
+tail -f baseline_yolo11n.log
+```
+
+---
+
+## 🧩 怎么用四张 GPU
+
+`--device` 控制用哪些 GPU：
+
+- `--device 0`：只用第 0 张 GPU，也就是单 GPU。
+- `--device 0,1,2,3`：同时用第 0、1、2、3 张 GPU，也就是四张 GPU。
+
+用四张 GPU 时，建议把 batch 从 16 提高到 64。直观理解是：单张卡每次吃 16 张图，四张卡合起来就可以尝试每次吃 64 张图。显存不够时再改成 48、32 或 16。
+
+四 GPU 训练 yolo11l 的通用命令如下：
+
+```bash
+python scripts/train.py \
+    --model yolo11l.pt \
+    --data /path/to/data_server_fixed.yaml \
+    --epochs 100 \
+    --batch 64 \
+    --imgsz 640 \
+    --device 0,1,2,3 \
+    --name baseline_yolo11l_4gpu
+```
+
+训练完成后看结果：
+
+```bash
+tail -n 5 runs/baseline_yolo11l_4gpu/results.csv
+```
+
+本次四 GPU 训练结果是：100 轮约 1.027 小时，P=0.982，R=0.980，mAP50=0.985，mAP50-95=0.777。它比 yolo11n 有提升，但提升幅度不大，说明当前数据集可能已经接近模型能轻松达到的上限。
+
+---
+
+## 🧪 下一步怎么优化但先不跑
+
+下面这些是后续实验方向，先记录，不建议一开始就全部跑。先把 baseline 跑通，再逐个验证。
+
+1. **把 `imgsz` 提高到 1280**  
+   更大的输入分辨率能让模型看到更多细节，可能提升 mAP50-95。代价是显存和训练时间明显增加。
+
+2. **检查标签质量**  
+   重点看框是否贴合目标边缘，有没有漏标、错标、类别混乱。mAP50-95 对框的位置很敏感，标注不准会直接压低这个指标。
+
+3. **补充难例样本**  
+   收集模型容易错的图片，例如遮挡、远距离、小目标、强光、阴影、特殊角度。难例通常比盲目换大模型更有价值。
+
+4. **做混淆和错误分析**  
+   查看 `confusion_matrix.png`、预测图片和漏检图片，记录模型到底错在哪里。先分析错误，再决定补数据还是改参数。
+
+5. **之后再尝试 yolo11x**  
+   yolo11x 更大、更慢，也更吃显存。建议等标签和数据问题先处理完，再用它做最后的冲刺实验。
 
 ---
 
@@ -536,10 +896,10 @@ python scripts/train.py --model ./yolo11n.pt --data ...
 基线用的是最小的 yolo11n（2.59M 参数），升级到更大的模型通常能显著提升精度：
 
 ```bash
-# yolo11l — 大模型，精度更高
+# yolo11l：大模型，精度更高
 python scripts/train.py --model yolo11l.pt --data ... --epochs 100
 
-# yolo11x — 超大模型，最高精度（需要大显存 ≥16GB）
+# yolo11x：超大模型，最高精度（需要大显存 ≥16GB）
 python scripts/train.py --model yolo11x.pt --data ... --epochs 100 --batch 4
 ```
 
@@ -622,8 +982,8 @@ runs/
 
 ## 🙏 致谢
 
-- **[Ultralytics](https://github.com/ultralytics/ultralytics)** — 提供 YOLO11 目标检测框架
-- **[Roboflow Universe](https://universe.roboflow.com/)** — 提供集装箱检测数据集（[container-sq4mu](https://universe.roboflow.com/cont-vkss7/container-sq4mu/dataset/1)，CC BY 4.0 许可）
+- **[Ultralytics](https://github.com/ultralytics/ultralytics)**：提供 YOLO11 目标检测框架
+- **[Roboflow Universe](https://universe.roboflow.com/)**：提供集装箱检测数据集（[container-sq4mu](https://universe.roboflow.com/cont-vkss7/container-sq4mu/dataset/1)，CC BY 4.0 许可）
 - 感谢所有为开源社区贡献的开发者们 ❤️
 
 ---
